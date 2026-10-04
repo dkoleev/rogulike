@@ -25,3 +25,9 @@ void progressionSystem(World& w);
 bool pickupItems(World& w);       // true, если что-то подобрано
 bool useItem(World& w, int index);  // true, если действие выполнено (ход потрачен)
 bool isOnStairs(const World& w);
+
+// fov.cpp
+void fovSystem(World& w);
+
+// ai.cpp
+void aiSystem(World& w);
