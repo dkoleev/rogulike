@@ -38,6 +38,18 @@ endif()
 add_executable(roguelike src/main.cpp)
 target_link_libraries(roguelike PRIVATE game_ui)
 
+# MinGW: libstdc++/libgcc линкуются статически, а libwinpthread-1.dll копируется рядом с exe,
+# чтобы игру можно было запускать вне CLion (иначе "libstdc++-6.dll was not found").
+if(MINGW)
+    target_link_options(roguelike PRIVATE -static-libgcc -static-libstdc++)
+    get_filename_component(MINGW_BIN_DIR "${CMAKE_CXX_COMPILER}" DIRECTORY)
+    set(WINPTHREAD_DLL "${MINGW_BIN_DIR}/libwinpthread-1.dll")
+    if(EXISTS "${WINPTHREAD_DLL}")
+        add_custom_command(TARGET roguelike POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different "${WINPTHREAD_DLL}" "$<TARGET_FILE_DIR:roguelike>")
+    endif()
+endif()
+
 
 enable_testing()
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS tests/*.cpp)
