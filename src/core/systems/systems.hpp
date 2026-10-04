@@ -20,3 +20,8 @@ void deathSystem(World& w);
 // progression.cpp
 int xpToNext(int level);
 void progressionSystem(World& w);
+
+// inventory.cpp
+bool pickupItems(World& w);       // true, если что-то подобрано
+bool useItem(World& w, int index);  // true, если действие выполнено (ход потрачен)
+bool isOnStairs(const World& w);
