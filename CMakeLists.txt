@@ -21,6 +21,11 @@ add_library(game_core STATIC ${CORE_SOURCES})
 target_include_directories(game_core PUBLIC src)
 target_link_libraries(game_core PUBLIC EnTT::EnTT)
 
+file(GLOB UI_SOURCES CONFIGURE_DEPENDS src/ui/*.cpp)
+list(FILTER UI_SOURCES EXCLUDE REGEX ".*terminal_(win|posix)\\.cpp$")
+add_library(game_ui STATIC ${UI_SOURCES})
+target_link_libraries(game_ui PUBLIC game_core)
+
 # временно, заменится в Task 9
 add_executable(roguelike main.cpp)
 
@@ -28,5 +33,5 @@ enable_testing()
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS tests/*.cpp)
 add_executable(game_tests ${TEST_SOURCES})
 target_include_directories(game_tests PRIVATE tests)
-target_link_libraries(game_tests PRIVATE game_core Catch2::Catch2WithMain)
+target_link_libraries(game_tests PRIVATE game_core game_ui Catch2::Catch2WithMain)
 add_test(NAME game_tests COMMAND game_tests)
