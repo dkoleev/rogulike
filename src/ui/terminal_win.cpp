@@ -15,12 +15,16 @@ public:
         out_ = GetStdHandle(STD_OUTPUT_HANDLE);
         GetConsoleMode(out_, &savedMode_);
         SetConsoleMode(out_, savedMode_ | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
+        in_ = GetStdHandle(STD_INPUT_HANDLE);
+        GetConsoleMode(in_, &savedInMode_);
+        SetConsoleMode(in_, savedInMode_ & ~static_cast<DWORD>(ENABLE_PROCESSED_INPUT));
         enterScreen();
     }
 
     ~WinTerminal() override {
         leaveScreen();
         SetConsoleMode(out_, savedMode_);
+        SetConsoleMode(in_, savedInMode_);
     }
 
     KeyEvent readKey() override {
@@ -34,6 +38,7 @@ public:
                 default: return KeyEvent{};
             }
         }
+        if (c == 3) return KeyEvent{Key::Char, 'q'};  // Ctrl-C (processed input выключен)
         if (c == 27) return KeyEvent{Key::Escape, 0};
         return KeyEvent{Key::Char, static_cast<char>(c)};
     }
@@ -48,6 +53,8 @@ public:
 private:
     HANDLE out_ = nullptr;
     DWORD savedMode_ = 0;
+    HANDLE in_ = nullptr;
+    DWORD savedInMode_ = 0;
 };
 
 }  // namespace

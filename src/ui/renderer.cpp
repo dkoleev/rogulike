@@ -62,6 +62,12 @@ std::vector<std::string> mapLines(const World& w) {
         }
     }
 
+    std::vector<bool> stairs(cells, false);
+    for (auto e : w.reg.view<const Position, const Stairs>()) {
+        const auto& p = w.reg.get<Position>(e);
+        if (m.inBounds(p.x, p.y)) stairs[static_cast<std::size_t>(p.y * m.width() + p.x)] = true;
+    }
+
     std::vector<std::string> lines;
     for (int y = 0; y < m.height(); ++y) {
         std::string line;
@@ -74,7 +80,8 @@ std::vector<std::string> mapLines(const World& w) {
                 g = layer[i] >= 0 ? top[i]
                                   : Glyph{m.walkable(x, y) ? '.' : '#', Color::White};
             } else if (m.explored(x, y)) {
-                g = Glyph{m.walkable(x, y) ? '.' : '#', Color::Gray};
+                g = stairs[i] ? Glyph{'>', Color::Gray}
+                              : Glyph{m.walkable(x, y) ? '.' : '#', Color::Gray};
             }
             if (!haveColor || g.color != current) {
                 line += ansi(g.color);
@@ -89,6 +96,12 @@ std::vector<std::string> mapLines(const World& w) {
     return lines;
 }
 
+std::string clip(const std::string& s) {
+    return s.size() > static_cast<std::size_t>(Renderer::kCols)
+               ? s.substr(0, static_cast<std::size_t>(Renderer::kCols))
+               : s;
+}
+
 std::vector<std::string> inventoryLines(const World& w) {
     const auto& reg = w.reg;
     std::vector<std::string> lines;
@@ -101,7 +114,7 @@ std::vector<std::string> inventoryLines(const World& w) {
     lines.push_back("");
     const auto& inv = reg.get<Inventory>(w.player);
     for (std::size_t i = 0; i < inv.items.size(); ++i) {
-        lines.push_back(std::to_string(i + 1) + ") " + reg.get<Name>(inv.items[i]).value);
+        lines.push_back(clip(std::to_string(i + 1) + ") " + reg.get<Name>(inv.items[i]).value));
     }
     lines.push_back("");
     lines.push_back(str::kInventoryHint);
@@ -110,12 +123,6 @@ std::vector<std::string> inventoryLines(const World& w) {
 
 void fit(std::vector<std::string>& lines, std::size_t count) {
     lines.resize(count);  // обрезает лишнее, добавляет пустые строки
-}
-
-std::string clip(const std::string& s) {
-    return s.size() > static_cast<std::size_t>(Renderer::kCols)
-               ? s.substr(0, static_cast<std::size_t>(Renderer::kCols))
-               : s;
 }
 
 }  // namespace
@@ -138,7 +145,7 @@ std::string Renderer::renderFrame(const Game& game) const {
             game.state() == GameState::Dead
                 ? std::string(str::kDiedBanner) + std::to_string(w.floor)
                 : std::string(str::kWonBanner) + std::to_string(w.reg.get<Gold>(w.player).amount);
-        messages.push_back(banner + str::kPressRestart);
+        messages.push_back(clip(banner + str::kPressRestart));
     }
     fit(messages, kMessageRows);
     lines.insert(lines.end(), messages.begin(), messages.end());

@@ -13,7 +13,9 @@ Command commandFromKey(const KeyEvent& key, GameState state) {
                        : '\0';
 
     if (state == GameState::Dead || state == GameState::Won) {
-        return Command{c == 'r' ? CommandType::Restart : CommandType::Quit};
+        if (c == 'r') return Command{CommandType::Restart};
+        if (c == 'q' || key.key == Key::Escape) return Command{CommandType::Quit};
+        return Command{};
     }
 
     if (state == GameState::Inventory) {

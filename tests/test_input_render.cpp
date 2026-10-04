@@ -57,12 +57,50 @@ TEST_CASE("inventory: digits use items, movement keys are ignored", "[input]") {
     REQUIRE(commandFromKey(ch('q'), s).type == CommandType::Quit);
 }
 
-TEST_CASE("after the run ends R restarts and any other key quits", "[input]") {
+TEST_CASE("after the run ends only R restarts and Q/Escape quit", "[input]") {
     REQUIRE(commandFromKey(ch('r'), GameState::Dead).type == CommandType::Restart);
     REQUIRE(commandFromKey(ch('R'), GameState::Won).type == CommandType::Restart);
-    REQUIRE(commandFromKey(ch('x'), GameState::Dead).type == CommandType::Quit);
-    REQUIRE(commandFromKey(special(Key::Up), GameState::Won).type == CommandType::Quit);
+    REQUIRE(commandFromKey(ch('x'), GameState::Dead).type == CommandType::None);
+    REQUIRE(commandFromKey(special(Key::Up), GameState::Won).type == CommandType::None);
+    REQUIRE(commandFromKey(ch('q'), GameState::Dead).type == CommandType::Quit);
+    REQUIRE(commandFromKey(ch('Q'), GameState::Won).type == CommandType::Quit);
+    REQUIRE(commandFromKey(special(Key::Escape), GameState::Dead).type == CommandType::Quit);
     REQUIRE(commandFromKey(special(Key::None), GameState::Dead).type == CommandType::None);
+}
+
+TEST_CASE("explored stairs out of view stay on the map", "[render]") {
+    Game g(3);
+    auto& w = prepareOpenFloor(g);
+    w.reg.get<Viewshed>(w.player).radius = 3;
+    spawnStairs(w.reg, Position{15, 5});
+    Renderer r;
+    fovSystem(w);
+    REQUIRE(r.renderFrame(g).find('>') == std::string::npos);  // ещё не видели
+
+    w.reg.get<Viewshed>(w.player).radius = 12;
+    fovSystem(w);
+    REQUIRE(r.renderFrame(g).find('>') != std::string::npos);  // видим
+
+    w.reg.get<Viewshed>(w.player).radius = 3;
+    fovSystem(w);
+    REQUIRE_FALSE(w.map.visible(15, 5));
+    REQUIRE(w.map.explored(15, 5));
+    REQUIRE(r.renderFrame(g).find('>') != std::string::npos);  // помним
+}
+
+TEST_CASE("end banner is clipped to the screen width", "[render]") {
+    Game g(3);
+    auto& w = prepareOpenFloor(g);
+    spawn(w.reg, "goblin", Position{6, 5});
+    w.reg.get<Health>(w.player).cur = 1;
+    g.tick(Command{CommandType::Wait});
+    Renderer r;
+    const auto frame = r.renderFrame(g);
+    const auto lastNl = frame.rfind('\n');
+    std::string last = frame.substr(lastNl + 1);
+    const auto esc = last.find("\x1b[K");
+    REQUIRE(esc != std::string::npos);
+    REQUIRE(static_cast<int>(esc) <= Renderer::kCols);
 }
 
 TEST_CASE("frame has a fixed height and shows the HUD and hero", "[render]") {
