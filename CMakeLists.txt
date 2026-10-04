@@ -25,9 +25,15 @@ file(GLOB UI_SOURCES CONFIGURE_DEPENDS src/ui/*.cpp)
 list(FILTER UI_SOURCES EXCLUDE REGEX ".*terminal_(win|posix)\\.cpp$")
 add_library(game_ui STATIC ${UI_SOURCES})
 target_link_libraries(game_ui PUBLIC game_core)
+if(WIN32)
+    target_sources(game_ui PRIVATE src/ui/terminal_win.cpp)
+else()
+    target_sources(game_ui PRIVATE src/ui/terminal_posix.cpp)
+endif()
 
-# временно, заменится в Task 9
-add_executable(roguelike main.cpp)
+add_executable(roguelike src/main.cpp)
+target_link_libraries(roguelike PRIVATE game_ui)
+
 
 enable_testing()
 file(GLOB TEST_SOURCES CONFIGURE_DEPENDS tests/*.cpp)
